@@ -15,85 +15,115 @@
 #ifndef KEYBOARD_HANDLER__KEYBOARD_HANDLER_BASE_HPP_
 #define KEYBOARD_HANDLER__KEYBOARD_HANDLER_BASE_HPP_
 
+#include "keyboard_handler/visibility_control.hpp"
 #include <functional>
-#include <unordered_map>
 #include <mutex>
 #include <string>
-#include "keyboard_handler/visibility_control.hpp"
+#include <unordered_map>
 
 // #define PRINT_DEBUG_INFO
 
+/// @class KeyboardHandlerBase
+/// @brief 键盘处理器基类，提供处理键盘输入的基本功能
+/// @brief Keyboard handler base class, providing basic functionality for handling keyboard input
 class KeyboardHandlerBase
 {
 public:
-  /// \brief Enum for possible keys press combinations which keyboard handler capable to handle.
+  /// @enum KeyCode
+  /// @brief 可能的按键组合枚举，键盘处理器可以处理这些组合
+  /// @brief Enum for possible keys press combinations which keyboard handler is capable to handle.
   enum class KeyCode : uint32_t;
 
-  /// \brief Enum for key modifiers such as CTRL, ALT and SHIFT pressed along side with base key.
-  /// \details Enum represented as a bitmask and could contain multiple values. Multiple values
+  /// \brief 键盘修饰符枚举，如CTRL、ALT和SHIFT与基础按键一起按下时使用。
+  /// \details 以位掩码形式表示的枚举，可以包含多个值。用重载的`|`逻辑或运算符设置多个值，并用`&&`运算符提取。
+  /// Enum for key modifiers such as CTRL, ALT and SHIFT pressed along side with base key.
+  /// Enum represented as a bitmask and could contain multiple values. Multiple values
   /// can be settled up with overloaded `|` logical OR operator and extracted with `&&` operator.
-  enum class KeyModifiers : uint32_t
-  {
-    NONE  = 0,
-    SHIFT = 1,
-    ALT   = 1 << 1,
-    CTRL  = 1 << 2
-  };
+  enum class KeyModifiers : uint32_t { NONE = 0, SHIFT = 1, ALT = 1 << 1, CTRL = 1 << 2 };
 
-  /// \brief Type for callback functions
-  using callback_t = std::function<void (KeyCode, KeyModifiers)>;
+  /// \brief 回调函数类型定义
+  /// Type for callback functions
+  using callback_t = std::function<void(KeyCode, KeyModifiers)>;
   using callback_handle_t = uint64_t;
 
-  /// \brief Callback handle returning from add_key_press_callback and using as an argument for
+  /// \brief 从add_key_press_callback返回的回调句柄，并作为delete_key_press_callback的参数
+  /// Callback handle returning from add_key_press_callback and using as an argument for
   /// the delete_key_press_callback
   KEYBOARD_HANDLER_PUBLIC
   static constexpr callback_handle_t invalid_handle = 0;
 
+  /// \brief 添加可调用对象作为指定按键组合的处理程序。
   /// \brief Adding callable object as a handler for specified key press combination.
+  /// \param callback 当键码被识别时将被调用的可调用对象。
   /// \param callback Callable which will be called when key_code will be recognized.
+  /// \param key_code 来自枚举的值，对应于某个预定义的按键组合。
   /// \param key_code Value from enum which corresponds to some predefined key press combination.
-  /// \param key_modifiers Value from enum which corresponds to the key modifiers pressed along
-  /// side with key.
-  /// \return Return Newly created callback handle if callback was successfully added to the
-  /// keyboard handler, returns invalid_handle if callback is nullptr or keyboard handler wasn't
-  /// successfully initialized.
+  /// \param key_modifiers 来自枚举的值，对应于与键一起按下的键修饰符。
+  /// \param key_modifiers Value from enum which corresponds to the key modifiers pressed along side with key.
+  /// \return 如果回调成功添加到键盘处理程序，则返回新创建的回调句柄；如果回调为空或键盘处理程序未成功初始化，则返回 invalid_handle。
+  /// \return Return Newly created callback handle if callback was successfully added to the keyboard handler, returns invalid_handle if callback is nullptr or keyboard handler wasn't successfully initialized.
   KEYBOARD_HANDLER_PUBLIC
   callback_handle_t add_key_press_callback(
     const callback_t & callback,
     KeyboardHandlerBase::KeyCode key_code,
     KeyboardHandlerBase::KeyModifiers key_modifiers = KeyboardHandlerBase::KeyModifiers::NONE);
 
+  /// \brief 从键盘处理程序回调列表中删除回调
   /// \brief Delete callback from keyboard handler callback's list
+  /// \param handle 从 #add_key_press_callback 返回的回调句柄
   /// \param handle Callback's handle returned from #add_key_press_callback
   KEYBOARD_HANDLER_PUBLIC
   void delete_key_press_callback(const callback_handle_t & handle) noexcept;
 
 protected:
+  /**
+ * @brief 回调数据结构体 (Callback data structure)
+ */
   struct callback_data
   {
-    callback_handle_t handle;
-    callback_t callback;
+    callback_handle_t handle; ///< 句柄 (Handle)
+    callback_t callback;      ///< 回调函数 (Callback function)
   };
 
+  /**
+ * @brief 键和修饰符结构体 (Key and modifiers structure)
+ */
   struct KeyAndModifiers
   {
-    KeyCode key_code;
-    KeyModifiers key_modifiers;
+    KeyCode key_code;           ///< 键码 (Key code)
+    KeyModifiers key_modifiers; ///< 键修饰符 (Key modifiers)
 
+    /**
+   * @brief 判断两个 KeyAndModifiers 是否相等 (Determine if two KeyAndModifiers are equal)
+   *
+   * @param rhs 另一个 KeyAndModifiers 对象 (Another KeyAndModifiers object)
+   * @return 两个对象是否相等 (Whether the two objects are equal)
+   */
     bool operator==(const KeyAndModifiers & rhs) const
     {
       return this->key_code == rhs.key_code && this->key_modifiers == rhs.key_modifiers;
     }
 
-    bool operator!=(const KeyAndModifiers & rhs) const
-    {
-      return !operator==(rhs);
-    }
+    /**
+   * @brief 判断两个 KeyAndModifiers 是否不相等 (Determine if two KeyAndModifiers are not equal)
+   *
+   * @param rhs 另一个 KeyAndModifiers 对象 (Another KeyAndModifiers object)
+   * @return 两个对象是否不相等 (Whether the two objects are not equal)
+   */
+    bool operator!=(const KeyAndModifiers & rhs) const { return !operator==(rhs); }
   };
 
-  /// \brief Specialized hash function for `unordered_map` with KeyAndModifiers
+  /**
+ * @brief 用于 `unordered_map` 的 KeyAndModifiers 的特化哈希函数 (Specialized hash function for `unordered_map` with KeyAndModifiers)
+ */
   struct key_and_modifiers_hash_fn
   {
+    /**
+   * @brief 计算 KeyAndModifiers 的哈希值 (Calculate the hash value of KeyAndModifiers)
+   *
+   * @param key_and_mod KeyAndModifiers 对象 (KeyAndModifiers object)
+   * @return 哈希值 (Hash value)
+   */
     std::size_t operator()(const KeyAndModifiers & key_and_mod) const
     {
       using key_undertype = std::underlying_type_t<KeyCode>;
@@ -103,16 +133,18 @@ protected:
     }
   };
 
-  bool is_init_succeed_ = false;
-  std::mutex callbacks_mutex_;
-  std::unordered_multimap<KeyAndModifiers, callback_data, key_and_modifiers_hash_fn> callbacks_;
+  bool is_init_succeed_ =
+    false; ///< 初始化是否成功的标志 (Flag indicating whether initialization was successful)
+  std::mutex
+    callbacks_mutex_; ///< 用于保护回调函数列表的互斥锁 (Mutex for protecting the callback function list)
+  std::unordered_multimap<KeyAndModifiers, callback_data, key_and_modifiers_hash_fn>
+    callbacks_; ///< 存储键和修饰符与回调数据之间关系的哈希表 (Hash table storing the relationship between keys and modifiers and callback data)
 
 private:
   static callback_handle_t get_new_handle();
 };
 
-enum class KeyboardHandlerBase::KeyCode: uint32_t
-{
+enum class KeyboardHandlerBase::KeyCode : uint32_t {
   UNKNOWN = 0,
   EXCLAMATION_MARK,
   QUOTATION_MARK,
@@ -211,36 +243,47 @@ enum class KeyboardHandlerBase::KeyCode: uint32_t
   END_OF_KEY_CODE_ENUM
 };
 
-/// \brief  Logical AND operator for KeyModifiers enum represented as a bitmask.
+/// \brief 逻辑与运算符用于表示位掩码的 KeyModifiers 枚举。
+/// \brief Logical AND operator for KeyModifiers enum represented as a bitmask.
+/// \return 如果在一个操作数中的测试值出现在另一个操作数给定的位掩码中，则返回 true，否则返回 false。
 /// \return true if testing value in one of the operands present in a bitmask given in another
 /// operand, otherwise false.
 KEYBOARD_HANDLER_PUBLIC
 bool operator&&(
-  const KeyboardHandlerBase::KeyModifiers & left,
-  const KeyboardHandlerBase::KeyModifiers & right);
+  const KeyboardHandlerBase::KeyModifiers & left, const KeyboardHandlerBase::KeyModifiers & right);
 
-/// \brief  Logical OR operator for KeyModifiers enum represented as a bitmask.
+/// \brief 逻辑或运算符用于表示位掩码的 KeyModifiers 枚举。
+/// \brief Logical OR operator for KeyModifiers enum represented as a bitmask.
+/// \param left KeyModifiers 枚举位掩码
 /// \param left KeyModifiers enum bitmask
+/// \param right 要在位掩码中设置的修饰符值
 /// \param right Modifier value to set in bitmask
+/// \return 使用来自右侧参数的 settled bit 的新 KeyModifiers 位掩码值
 /// \return new KeyModifiers bitmask value with settled bit from right side parameter
 KEYBOARD_HANDLER_PUBLIC
-KeyboardHandlerBase::KeyModifiers operator|(
-  KeyboardHandlerBase::KeyModifiers left,
-  const KeyboardHandlerBase::KeyModifiers & right);
+KeyboardHandlerBase::KeyModifiers
+operator|(KeyboardHandlerBase::KeyModifiers left, const KeyboardHandlerBase::KeyModifiers & right);
 
+/// \brief KeyCode 枚举值的前缀递增运算符
 /// \brief Prefix increment operator for KeyCode enum values
 KEYBOARD_HANDLER_PUBLIC
 KeyboardHandlerBase::KeyCode & operator++(KeyboardHandlerBase::KeyCode & key_code);
 
+/// \brief 用于将 KeyCode 枚举值映射到其字符串表示形式的数据类型。
 /// \brief Data type for mapping KeyCode enum value to it's string representation.
 struct KeyCodeToStrMap
 {
+  // 内部 KeyCode 枚举值
+  // Inner KeyCode enum value
   KeyboardHandlerBase::KeyCode inner_code;
+
+  // 指向字符串的指针，表示 KeyCode 的字符串形式
+  // Pointer to the string representing the KeyCode in string form
   const char * str;
 };
 
 /// \brief Lookup table for mapping KeyCode enum value to it's string representation.
-static const KeyCodeToStrMap ENUM_KEY_TO_STR_MAP[] {
+static const KeyCodeToStrMap ENUM_KEY_TO_STR_MAP[]{
   {KeyboardHandlerBase::KeyCode::UNKNOWN, "UNKNOWN"},
   {KeyboardHandlerBase::KeyCode::EXCLAMATION_MARK, "!"},
   {KeyboardHandlerBase::KeyCode::QUOTATION_MARK, "QUOTATION_MARK"},
@@ -338,22 +381,22 @@ static const KeyCodeToStrMap ENUM_KEY_TO_STR_MAP[] {
   {KeyboardHandlerBase::KeyCode::F12, "F12"},
 };
 
-/// \brief Translate KeyCode enum value to it's string representation.
-/// \param key_code Value from enum which corresponds to some predefined key press combination.
-/// \return String corresponding to the specified enum value in ENUM_KEY_TO_STR_MAP lookup table.
+/// \brief 将 KeyCode 枚举值转换为其字符串表示形式。Translate KeyCode enum value to it's string representation.
+/// \param key_code 来自枚举的值，对应于某个预定义的按键组合。Value from enum which corresponds to some predefined key press combination.
+/// \return 在 ENUM_KEY_TO_STR_MAP 查找表中指定枚举值对应的字符串。String corresponding to the specified enum value in ENUM_KEY_TO_STR_MAP lookup table.
 KEYBOARD_HANDLER_PUBLIC
 std::string enum_key_code_to_str(KeyboardHandlerBase::KeyCode key_code);
 
-/// \brief Translate str value to it's keycode representation.
-/// \param String key_code_str
-/// \return KeyboardHandlerBase::Keycode
+/// \brief 将 str 值转换为其 keycode 表示形式。Translate str value to it's keycode representation.
+/// \param String key_code_str 字符串表示的按键代码。String representation of a keycode.
+/// \return KeyboardHandlerBase::Keycode 对应的按键代码枚举值。Corresponding keycode enum value.
 KEYBOARD_HANDLER_PUBLIC
 KeyboardHandlerBase::KeyCode enum_str_to_key_code(const std::string & key_code_str);
 
-/// \brief Translate KeyModifiers enum value to it's string representation.
-/// \param key_modifiers bitmask with key modifiers
-/// \return String corresponding to the specified enum value.
+/// \brief 将 KeyModifiers 枚举值转换为其字符串表示形式。Translate KeyModifiers enum value to it's string representation.
+/// \param key_modifiers 按键修饰符位掩码。Bitmask with key modifiers.
+/// \return 指定枚举值对应的字符串。String corresponding to the specified enum value.
 KEYBOARD_HANDLER_PUBLIC
 std::string enum_key_modifiers_to_str(KeyboardHandlerBase::KeyModifiers key_modifiers);
 
-#endif  // KEYBOARD_HANDLER__KEYBOARD_HANDLER_BASE_HPP_
+#endif // KEYBOARD_HANDLER__KEYBOARD_HANDLER_BASE_HPP_

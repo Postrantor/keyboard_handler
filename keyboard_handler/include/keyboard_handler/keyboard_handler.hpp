@@ -15,15 +15,16 @@
 #ifndef KEYBOARD_HANDLER__KEYBOARD_HANDLER_HPP_
 #define KEYBOARD_HANDLER__KEYBOARD_HANDLER_HPP_
 
-
 #ifdef _WIN32
-#include "keyboard_handler_windows_impl.hpp"
-/// \brief Alias for implementation specific keyboard handler
+#include "keyboard_handler_windows_impl.hpp" // 引入 Windows 平台的键盘处理实现 (Include the keyboard handler implementation for Windows platform)
+/// \brief 为特定实现的键盘处理程序创建别名 (Create an alias for the implementation-specific keyboard handler)
+/// \details 使用 KeyboardHandlerWindowsImpl 作为当前平台下的键盘处理程序 (Use KeyboardHandlerWindowsImpl as the keyboard handler for the current platform)
 using KeyboardHandler = KeyboardHandlerWindowsImpl;
 #else
-#include "keyboard_handler_unix_impl.hpp"
-/// \brief Alias for implementation specific keyboard handler
+#include "keyboard_handler_unix_impl.hpp" // 引入 Unix 平台的键盘处理实现 (Include the keyboard handler implementation for Unix platform)
+/// \brief 为特定实现的键盘处理程序创建别名 (Create an alias for the implementation-specific keyboard handler)
+/// \details 使用 KeyboardHandlerUnixImpl 作为当前平台下的键盘处理程序 (Use KeyboardHandlerUnixImpl as the keyboard handler for the current platform)
 using KeyboardHandler = KeyboardHandlerUnixImpl;
-#endif  // #ifdef _WIN32
+#endif                                    // #ifdef _WIN32
 
-#endif  // KEYBOARD_HANDLER__KEYBOARD_HANDLER_HPP_
+#endif // KEYBOARD_HANDLER__KEYBOARD_HANDLER_HPP_
